@@ -22,10 +22,19 @@ const drainJson = (req) =>
     });
   });
 
+class ApiError extends Error {
+  constructor(statusCode, data) {
+    super();
+    this.statusCode = statusCode;
+    this.data = data;
+  }
+}
+
 const createOrder = (data) => {
+  if (!data.order.length) throw new ApiError(500, { message: "Order is empty" });
+
   data.id =
-    Math.random().toString(10).substring(2, 8) +
-    Date.now().toString(10).substring(9);
+    Math.random().toString(10).substring(2, 5)
   data.createdAt = new Date().toGMTString();
   orders.push(data);
   writeFile(ORDER_FILE, JSON.stringify(orders), (err) => {
@@ -46,13 +55,6 @@ const shuffle = (array) => {
   return shuffleArray;
 };
 
-class ApiError extends Error {
-  constructor(statusCode, data) {
-    super();
-    this.statusCode = statusCode;
-    this.data = data;
-  }
-}
 
 const pagination = (data, page, count) => {
   const end = count * page;
@@ -130,9 +132,13 @@ const getGoodsList = (params) => {
     });
   }
 
-  if (params.list) {
+  if (params.list || Object.hasOwn(params, 'list')) {
     const list = params.list.trim().toLowerCase();
     data = db.goods.filter((item) => list.includes(item.id)).reverse();
+  }
+
+  if (params.count === 'all') {
+    return data;
   }
 
   return pagination(data, page, paginationCount);
